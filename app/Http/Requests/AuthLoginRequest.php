@@ -27,7 +27,7 @@ class AuthLoginRequest extends FormRequest
             ],
             'password' => [
                 'required',
-                'password',
+                'string',
             ],
         ];
     }

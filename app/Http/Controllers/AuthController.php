@@ -22,7 +22,7 @@ class AuthController extends Controller
             $user = User::where('email', $request->email)->first();
 
             throw_if(
-                blank($user) || Hash::check($request->password, $user->password),
+                blank($user) || !Hash::check($request->password, $user->password),
                 new AuthenticationException('Inconsistent credentials.')
             );
 
@@ -37,6 +37,38 @@ class AuthController extends Controller
                     'user' => new DetailedUserResource($user),
                     'token' => $token->plainTextToken,
                 ],
+            ]);
+        } catch(Exception $exception) {
+            DB::rollBack();
+
+            throw $exception;
+        }
+    }
+
+    public function me(Request $request): JsonResponse
+    {
+        return response()->json([
+            'status' => 200,
+                'message' => 'Logged in user retrieved successfully.',
+                'data' => [
+                    'user' => new DetailedUserResource($request->user()),
+                ],
+        ]);
+    }
+
+    public function logout(Request $request): JsonResponse
+    {
+        DB::beginTransaction();
+
+        try {
+            $request->user()->currentAccessToken()->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 200,
+                'message' => 'Logged out successfully.',
+                'data' => [],
             ]);
         } catch(Exception $exception) {
             DB::rollBack();
